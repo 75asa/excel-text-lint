@@ -18,6 +18,7 @@ src/
   taskpane/           タスクペインの HTML / TS / CSS
   core/               ホストに依存しない層（lint エンジンなど。今後追加）
   hosts/excel/        Excel アダプタ（Excel JavaScript API を使う処理）
+  testing/            テスト用のヘルパー（Office.js のフェイクなど）
 docs/adr/             設計判断の記録
 poc/                  技術検証のコード（本体とは別の npm プロジェクト）
 ```
@@ -31,6 +32,10 @@ poc/                  技術検証のコード（本体とは別の npm プロ�
 | `npm stop` | sideload を解除し、開発サーバーを止める |
 | `npm run build` | `dist/` に本番用のファイルを出力する |
 | `npm run typecheck` | TypeScript の型チェック |
+| `npm run lint` | [Biome](https://biomejs.dev/) で lint とフォーマットのチェックを行う（書き換えはしない） |
+| `npm run format` | Biome でフォーマットし、自動修正できる lint の指摘と import の並びを直す |
+| `npm test` | [Vitest](https://vitest.dev/) でユニットテストを実行する（`npm run test:watch` で監視モード） |
+| `npm run check` | `lint`・`typecheck`・`test` をまとめて実行する。PR を出す前に通しておく |
 | `npm run validate` | `manifest.xml` を検証する（`office-addin-manifest validate`。Microsoft のサービスに問い合わせるためネットワークが必要） |
 | `npm run certs` | 開発用の HTTPS 証明書を作成・信頼登録する（`office-addin-dev-certs install`） |
 
@@ -45,6 +50,19 @@ npm run dev     # https://localhost:3000/taskpane/taskpane.html
 - Office アドインは HTTPS で配信する必要があります。証明書は [office-addin-dev-certs](https://www.npmjs.com/package/office-addin-dev-certs) が `~/.office-addin-dev-certs` に作成し、`vite.config.ts` が読み込みます。`npm run certs` を先に実行していなくても、`npm run dev` の初回起動時に作成・登録されます
 - 証明書を削除するときは `npx office-addin-dev-certs uninstall` を実行します
 - ブラウザで直接タスクペインを開くと、Office の外なので「未対応のホスト」と表示されます。動作確認は Excel に sideload して行います
+
+## lint・テスト・CI
+
+```sh
+npm run format  # 整形と自動修正
+npm run check   # lint + 型チェック + テスト
+npm run build
+```
+
+- Biome の設定は `biome.json`。`poc/`・`docs/`・`dist/` は対象外
+- テストは `src/**/*.test.ts` に、テスト対象の隣に置く。Vitest の設定は `vitest.config.ts`。`vite.config.ts` は開発サーバーの起動時に開発用証明書を作成・信頼登録するため、テストでは読み込まないように設定を分けている
+- Office.js は読み込まず、`src/testing/excel-mock.ts` の `stubExcel()` で `globalThis.Excel` をフェイクに差し替えてテストする。フェイクの `Excel.run` はフェイクの `RequestContext` を渡し、`load()` と `context.sync()` を経ていないプロパティを読むと例外を投げる。差し替えたグローバルはテストごとに元に戻る
+- CI（`.github/workflows/ci.yml`）は PR と main への push で、lint・型チェック・テスト・ビルドと `manifest.xml` の検証を行う
 
 ## sideload（Excel に読み込む）
 

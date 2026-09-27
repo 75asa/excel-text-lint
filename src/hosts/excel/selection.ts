@@ -34,7 +34,7 @@ export async function readSelectedCells(): Promise<CellText[]> {
 }
 
 /** 0 始まりの列番号を列名（A, B, …, Z, AA, …）に変換する。 */
-function columnName(index: number): string {
+export function columnName(index: number): string {
   let name = "";
   for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
     name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
