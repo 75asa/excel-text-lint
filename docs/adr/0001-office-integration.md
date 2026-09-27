@@ -1,6 +1,6 @@
 # ADR 0001: Office との連携方式
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-28
 - Issue: #1
 
@@ -52,7 +52,7 @@ VBA から `WScript.Shell` で `npx textlint --format json` を起動し、結�
 - npm パッケージを import できず、textlint と kuromoji を載せるのは現実的でない
 - Excel に閉じた仕組みで、ほかのホストに広げられない
 
-## 決定（案）
+## 決定
 
 **A. Office アドインを採用する。**
 
