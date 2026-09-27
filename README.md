@@ -12,7 +12,8 @@
 ## ディレクトリ構成
 
 ```
-manifest.xml          add-in only manifest（XML）。開発用に https://localhost:3000 を指す
+manifest.xml          add-in only manifest（XML）。開発用に https://localhost:3000 を指す。本番用は build 時に生成する
+scripts/hosting.ts    build 時に kuromoji の辞書のコピーと本番用 manifest の生成をする Vite プラグイン
 public/assets/        アイコン（仮）
 src/
   taskpane/           タスクペインの HTML / TS / CSS
@@ -30,13 +31,14 @@ poc/                  技術検証のコード（本体とは別の npm プロ�
 | `npm run dev` | Vite の開発サーバーを https://localhost:3000 で起動する |
 | `npm start` | 開発サーバーを起動し、デスクトップ版 Excel に sideload して開く（`office-addin-debugging`） |
 | `npm stop` | sideload を解除し、開発サーバーを止める |
-| `npm run build` | `dist/` に本番用のファイルを出力する |
+| `npm run build` | `dist/` に本番用のファイル（タスクペイン、kuromoji の辞書 `dist/dict/`、本番用 manifest `dist/manifest.prod.xml`）を出力する |
 | `npm run typecheck` | TypeScript の型チェック |
 | `npm run lint` | [Biome](https://biomejs.dev/) で lint とフォーマットのチェックを行う（書き換えはしない） |
 | `npm run format` | Biome でフォーマットし、自動修正できる lint の指摘と import の並びを直す |
 | `npm test` | [Vitest](https://vitest.dev/) でユニットテストを実行する（`npm run test:watch` で監視モード） |
 | `npm run check` | `lint`・`typecheck`・`test` をまとめて実行する。PR を出す前に通しておく |
 | `npm run validate` | `manifest.xml` を検証する（`office-addin-manifest validate`。Microsoft のサービスに問い合わせるためネットワークが必要） |
+| `npm run validate:prod` | build で生成した `dist/manifest.prod.xml` を検証する |
 | `npm run certs` | 開発用の HTTPS 証明書を作成・信頼登録する（`office-addin-dev-certs install`） |
 
 ## 開発の始め方
@@ -109,6 +111,10 @@ npm run build
 
 - タスクペインが白いまま・読み込めない: 開発サーバーが動いているか、ブラウザで https://localhost:3000/taskpane/taskpane.html を開いて証明書の警告が出ないかを確認する
 - manifest を変えたのに反映されない: Office のキャッシュを消す（[Clear the Office cache](https://learn.microsoft.com/office/dev/add-ins/testing/clear-cache)）
+
+## 本番の配信
+
+main にマージすると、GitHub Actions（`.github/workflows/deploy.yml`）が build して GitHub Pages（https://75asa.github.io/excel-text-lint/）にデプロイします。本番用の manifest は https://75asa.github.io/excel-text-lint/manifest.prod.xml から取得できます。配信先の選定理由と設定は [docs/hosting.md](docs/hosting.md) を参照してください。
 
 ## 参考
 

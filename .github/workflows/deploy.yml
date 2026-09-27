@@ -1,0 +1,93 @@
+# main へのマージでタスクペインと kuromoji の辞書を GitHub Pages にデプロイする。
+# 方針と事前設定は docs/hosting.md を参照（Settings > Pages > Source を GitHub Actions にしておくこと）。
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# デプロイは 1 本ずつ。実行中のデプロイは途中で止めない
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # install scripts（keytar のネイティブビルドなど）は build に不要なので実行しない
+      - run: npm ci --ignore-scripts
+
+      # dist/ にタスクペイン、dist/dict/ に kuromoji の辞書、dist/manifest.prod.xml を出力する
+      # カスタムドメインに移すときは Variables の ADDIN_BASE_URL を設定する
+      - run: npm run build
+        env:
+          ADDIN_BASE_URL: ${{ vars.ADDIN_BASE_URL }}
+
+      # Microsoft のサービスに問い合わせて本番用 manifest を検証する
+      - run: npm run validate:prod
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  # デプロイ後に、実際の配信先が期待どおりのヘッダーで返すかを確かめる
+  smoke-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - name: タスクペインと manifest が取得できる
+        run: |
+          for path in taskpane/taskpane.html manifest.prod.xml assets/icon-32.png; do
+            curl -sSf -o /dev/null --retry 5 --retry-all-errors --retry-delay 10 "${PAGE_URL}${path}"
+            echo "ok: ${PAGE_URL}${path}"
+          done
+
+      # kuromoji は .dat.gz を自前で gunzip する。サーバーが Content-Encoding: gzip を付けると
+      # ブラウザが先に展開してしまい、kuromoji の Gunzip が失敗する
+      - name: 辞書（.dat.gz）が gzip のまま Content-Encoding なしで返る
+        run: |
+          url="${PAGE_URL}dict/base.dat.gz"
+          headers=$(curl -sSfI -H 'Accept-Encoding: gzip, deflate, br' --retry 5 --retry-all-errors --retry-delay 10 "$url")
+          echo "$headers"
+          if echo "$headers" | grep -qi '^content-encoding:'; then
+            echo "::error::$url に Content-Encoding が付いている"
+            exit 1
+          fi
+          curl -sSf -o base.dat.gz "$url"
+          magic=$(head -c 2 base.dat.gz | od -An -tx1 | tr -d ' \n')
+          if [ "$magic" != "1f8b" ]; then
+            echo "::error::$url の先頭が gzip のマジックナンバーではない: $magic"
+            exit 1
+          fi
+          echo "ok: $url"
