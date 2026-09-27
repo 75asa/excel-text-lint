@@ -1,0 +1,34 @@
+{
+  "name": "excel-text-lint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "textlint を Office（Excel ほか）で使うための Office アドイン",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "config": {
+    "app_to_debug": "excel",
+    "app_type_to_debug": "desktop",
+    "dev_server_port": 3000
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "validate": "office-addin-manifest validate manifest.xml",
+    "start": "office-addin-debugging start manifest.xml",
+    "stop": "office-addin-debugging stop manifest.xml",
+    "certs": "office-addin-dev-certs install",
+    "dev-server": "vite"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/office-js": "^1.0.610",
+    "office-addin-debugging": "^7.0.1",
+    "office-addin-dev-certs": "^3.0.1",
+    "office-addin-manifest": "^3.0.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

@@ -1,0 +1,41 @@
+:root {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  padding: 12px;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+}
+
+#cells {
+  padding-left: 0;
+  list-style: none;
+}
+
+#cells li {
+  padding: 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.address {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
