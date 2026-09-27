@@ -10,15 +10,21 @@ Issue #2 の検証用コード。アプリ本体ではない。本体の構成�
 npm install
 npm run build              # dist/textlint-worker.js を生成
 CELLS=1000 npm run bench   # CHROME=<path> で Chrome の場所を変えられる
+npm run compare            # configs/*.json のルールセットを比較する（#10）
 ```
 
-- ルール: `.textlintrc.json`（preset-ja-technical-writing と preset-ja-spacing）
+- `TEXTLINTRC=<path> OUT_DIR=<dir> npm run build` で、別の設定を使ってビルドできる
+- `npm run compare` は `configs/*.json` と `.textlintrc.json` を 1 つずつビルドし、`corpus.mjs` のセルを Worker で lint して `results/compare.json` に書く。`CONFIGS=a,b` で対象を絞る
+
+- ルール: `.textlintrc.json`（#10 で選んだ推奨の設定。technical-writing + jtf-style + prh の自前の辞書 `prh/business-ja.yml`。詳細は [docs/rules.md](../../docs/rules.md)）
 - 入力: Excel のセルを想定した短い日本語の文（`public/index.html` の `TEMPLATES`）を指定の件数だけ繰り返す
 - モード
   - `cdn`: 辞書をデフォルトの jsdelivr から取得する
   - `self-host`: `public/self-host-worker.js` で辞書の URL を自前の配信先に書き換える
 
 ## 結果（2026-09-28、Apple Silicon の Mac、ヘッドレス Chrome）
+
+この節は #2 の時点の設定（preset-ja-technical-writing と preset-ja-spacing）での結果。推奨の設定での結果は [docs/rules.md](../../docs/rules.md) にある。
 
 | 項目 | 結果 |
 |---|---|
@@ -60,4 +66,4 @@ CELLS=1000 npm run bench   # CHROME=<path> で Chrome の場所を変えられ�
 6. **ルールの選定はまだ要調整。**
    - 今回の文では preset-ja-spacing のルールに当たる違反が出なかった
    - 全角数字（`１２３`）や「下さい」は、preset-jtf-style や表記ゆれ辞書（prh）でないと検出できない
-   - 同梱するルールは #10 で選び直す
+   - 同梱するルールは #10 で選び直した（[docs/rules.md](../../docs/rules.md)）

@@ -1,6 +1,17 @@
 {
   "rules": {
-    "preset-ja-technical-writing": true,
-    "preset-ja-spacing": true
+    "preset-ja-technical-writing": {
+      "ja-no-mixed-period": false,
+      "max-kanji-continuous-len": false,
+      "no-exclamation-question-mark": false
+    },
+    "preset-jtf-style": {
+      "1.2.1.句点(。)と読点(、)": false,
+      "2.2.2.算用数字と漢数字の使い分け": false,
+      "4.2.7.コロン(：)": false
+    },
+    "prh": {
+      "rulePaths": ["./prh/business-ja.yml"]
+    }
   }
 }
