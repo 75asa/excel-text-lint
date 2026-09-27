@@ -1,0 +1,11 @@
+node_modules/
+dist/
+
+# 開発用証明書（office-addin-dev-certs は ~/.office-addin-dev-certs に置くが、念のため）
+*.pem
+*.crt
+*.key
+
+.DS_Store
+*.log
+.vite/

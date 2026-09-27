@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>excel-text-lint</title>
+    <!-- Office.js は CDN から読み込む必要がある（バンドル不可） -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="./taskpane.css" />
+  </head>
+  <body>
+    <main>
+      <h1>excel-text-lint</h1>
+      <p id="status">Office の初期化を待っています…</p>
+      <button id="read-selection" type="button" disabled>選択範囲のテキストを読み取る</button>
+      <ol id="cells"></ol>
+    </main>
+    <script type="module" src="./taskpane.ts"></script>
+  </body>
+</html>
