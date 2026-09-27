@@ -1,0 +1,16 @@
+{
+  "name": "textlint-worker-poc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "textlint-script-compiler --output-dir dist --metadataName textlint-worker-poc --metadataNamespace https://github.com/75asa/excel-text-lint --metadataHomepage https://github.com/75asa/excel-text-lint --metadataVersion 0.0.0",
+    "bench": "node bench.mjs"
+  },
+  "devDependencies": {
+    "@textlint/script-compiler": "^0.18.5",
+    "playwright-core": "^1.63.0",
+    "textlint": "^15.8.0",
+    "textlint-rule-preset-ja-spacing": "^3.0.3",
+    "textlint-rule-preset-ja-technical-writing": "^12.0.2"
+  }
+}
