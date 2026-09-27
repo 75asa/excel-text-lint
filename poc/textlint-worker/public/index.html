@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>textlint worker PoC</title>
+<script type="module">
+// Excel のセルを想定した短い日本語テキスト（違反を含む）
+const TEMPLATES = [
+  "このツールは、とても便利ですが、しかし、設定が難しいです。",
+  "サーバーを再起動して下さい。",
+  "データを取得することができる。",
+  "ユーザー登録が完了しました!",
+  "１２３件のデータがあります",
+  "これは問題ありません。",
+  "詳細は、以下の手順を参照してください。、",
+  "このAPIはJSON形式でデータを返します",
+  "〜について、検討を行う事とする。",
+  "エラーが発生した場合、ログを確認してください。",
+];
+
+function makeWorker(url) {
+  const worker = new Worker(url);
+  const pending = new Map();
+  let seq = 0;
+  const ready = new Promise((resolve, reject) => {
+    worker.addEventListener("message", (e) => {
+      const d = e.data;
+      if (d.command === "init") return resolve();
+      const p = pending.get(d.id);
+      if (!p) return;
+      pending.delete(d.id);
+      d.command === "error" ? p.reject(d.error) : p.resolve(d.result);
+    });
+    worker.addEventListener("error", (e) => reject(e.message));
+  });
+  const call = (command, text) => new Promise((resolve, reject) => {
+    const id = ++seq;
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ id, command, text, ext: ".txt" });
+  });
+  return { ready, lint: (t) => call("lint", t), fix: (t) => call("fix", t), terminate: () => worker.terminate() };
+}
+
+window.runBench = async ({ workerUrl, cells }) => {
+  const out = {};
+  const texts = Array.from({ length: cells }, (_, i) => TEMPLATES[i % TEMPLATES.length]);
+
+  let t = performance.now();
+  const w = makeWorker(workerUrl);
+  await w.ready;
+  out.initMs = performance.now() - t;
+
+  t = performance.now();
+  const first = await w.lint(TEMPLATES[2]);
+  out.firstLintMs = performance.now() - t; // 辞書のロードを含む
+  out.sample = first.messages.map(({ ruleId, message, line, column, index, range, fix }) => ({ ruleId, message, line, column, index, range, fix }));
+
+  // 1 セル = 1 メッセージ（並列に投げる）
+  t = performance.now();
+  const perCell = await Promise.all(texts.map((s) => w.lint(s)));
+  out.perCellMs = performance.now() - t;
+  out.perCellViolations = perCell.reduce((n, r) => n + r.messages.length, 0);
+
+  // まとめて 1 回で lint（セルを空行で区切って連結し、オフセットでセルに戻す）
+  t = performance.now();
+  const SEP = "\n\n";
+  const starts = [];
+  let pos = 0;
+  for (const s of texts) { starts.push(pos); pos += s.length + SEP.length; }
+  const batched = await w.lint(texts.join(SEP));
+  const byCell = new Map();
+  for (const m of batched.messages) {
+    let lo = 0, hi = starts.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; starts[mid] <= m.index ? (lo = mid) : (hi = mid - 1); }
+    byCell.set(lo, (byCell.get(lo) ?? 0) + 1);
+  }
+  out.batchedMs = performance.now() - t;
+  out.batchedViolations = batched.messages.length;
+  out.batchedCellsWithViolations = byCell.size;
+
+  // 違反件数の内訳（ルール別、1 セル = 1 メッセージの結果）
+  const byRule = {};
+  for (const r of perCell.slice(0, TEMPLATES.length)) for (const m of r.messages) byRule[m.ruleId] = (byRule[m.ruleId] ?? 0) + 1;
+  out.byRule = byRule;
+
+  t = performance.now();
+  const fixed = await w.fix("日本語 と 日本語の間の空白。\nこれは、テストです。");
+  out.fixMs = performance.now() - t;
+  out.fixOutput = fixed.output;
+  out.fixRemaining = fixed.remainingMessages?.length;
+
+  w.terminate();
+
+  // 2 回目の起動（辞書が IndexedDB にキャッシュ済み）
+  t = performance.now();
+  const w2 = makeWorker(workerUrl);
+  await w2.ready;
+  await w2.lint(TEMPLATES[2]);
+  out.warmStartMs = performance.now() - t;
+  w2.terminate();
+  return out;
+};
+window.benchReady = true;
+</script>
