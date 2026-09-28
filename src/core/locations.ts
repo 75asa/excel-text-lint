@@ -13,7 +13,12 @@ export type HostName = "excel" | "word" | "powerpoint" | "onenote" | "text";
 /** Excel のセル。 */
 export interface ExcelLocation {
   host: "excel";
-  /** ワークシート名。 */
+  /**
+   * ワークシートの ID（`Worksheet.id`）。シート名を変えても変わらない。
+   * TextUnit の id（`<sheetId>!<address>`）と、シートを探し直すのに使う。
+   */
+  sheetId: string;
+  /** ワークシート名（表示用）。 */
   sheet: string;
   /** シート名を含まない A1 形式のアドレス（例: `B3`）。 */
   address: string;
@@ -21,6 +26,11 @@ export interface ExcelLocation {
   row: number;
   /** 0 始まりの列番号。 */
   col: number;
+  /**
+   * 数式のセルか。true のとき `TextUnit.text` は数式の計算結果で、
+   * 値を書き換えると数式が消えるため、applyFix は `unsupported` を返すこと（#19）。
+   */
+  isFormula: boolean;
 }
 
 /**
