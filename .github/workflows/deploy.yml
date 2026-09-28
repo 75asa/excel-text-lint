@@ -66,12 +66,26 @@ jobs:
     env:
       PAGE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
+      # scripts/smoke-test-worker.ts を使うため（依存パッケージは要らない）
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
       - name: タスクペインと manifest が取得できる
         run: |
           for path in taskpane/taskpane.html manifest.prod.xml assets/icon-32.png; do
             curl -sSf -o /dev/null --retry 5 --retry-all-errors --retry-delay 10 "${PAGE_URL}${path}"
             echo "ok: ${PAGE_URL}${path}"
           done
+
+      # Worker のファイル名にはハッシュが付く（#45）。HTML → JS → ローダー → Worker と、
+      # 実際に使われる URL をたどって、JavaScript として取得できることを確かめる
+      - name: textlint の Worker（ハッシュ付き）が取得できる
+        run: node scripts/smoke-test-worker.ts "$PAGE_URL"
 
       # kuromoji は .dat.gz を自前で gunzip する。サーバーが Content-Encoding: gzip を付けると
       # ブラウザが先に展開してしまい、kuromoji の Gunzip が失敗する

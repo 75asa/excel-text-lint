@@ -14,10 +14,12 @@
 ```
 manifest.xml          add-in only manifest（XML）。開発用に https://localhost:3000 を指す。本番用は build 時に生成する
 scripts/hosting.ts    build 時に kuromoji の辞書のコピーと本番用 manifest の生成をする Vite プラグイン
+scripts/textlint-worker.ts  textlint の Worker を配信する Vite プラグイン（build ではファイル名にハッシュを付ける）
 public/assets/        アイコン（仮）
 src/
   taskpane/           タスクペインの HTML / TS / CSS
-  core/               ホストに依存しない層（lint エンジンなど。今後追加）
+  core/               ホストに依存しない層（lint エンジンなど）
+  textlint/           Worker のローダー（loader.js）と、生成した Worker（textlint-worker.js。git には入れない）
   hosts/excel/        Excel アダプタ（Excel JavaScript API を使う処理）
   testing/            テスト用のヘルパー（Office.js のフェイクなど）
 docs/adr/             設計判断の記録
@@ -31,7 +33,8 @@ poc/                  技術検証のコード（本体とは別の npm プロ�
 | `npm run dev` | Vite の開発サーバーを https://localhost:3000 で起動する |
 | `npm start` | 開発サーバーを起動し、デスクトップ版 Excel に sideload して開く（`office-addin-debugging`） |
 | `npm stop` | sideload を解除し、開発サーバーを止める |
-| `npm run build` | `dist/` に本番用のファイル（タスクペイン、kuromoji の辞書 `dist/dict/`、本番用 manifest `dist/manifest.prod.xml`）を出力する |
+| `npm run build:worker` | `.textlintrc.json` のルールから textlint の Worker（`src/textlint/textlint-worker.js`）を生成する。`npm run build` は毎回、`npm run dev` は無いか古いときに自動で実行する |
+| `npm run build` | `dist/` に本番用のファイル（タスクペイン、ハッシュ付きの Worker `dist/textlint/`、kuromoji の辞書 `dist/dict/`、本番用 manifest `dist/manifest.prod.xml`）を出力する |
 | `npm run typecheck` | TypeScript の型チェック |
 | `npm run lint` | [Biome](https://biomejs.dev/) で lint とフォーマットのチェックを行う（書き換えはしない） |
 | `npm run format` | Biome でフォーマットし、自動修正できる lint の指摘と import の並びを直す |
@@ -51,6 +54,7 @@ npm run dev     # https://localhost:3000/taskpane/taskpane.html
 
 - Office アドインは HTTPS で配信する必要があります。証明書は [office-addin-dev-certs](https://www.npmjs.com/package/office-addin-dev-certs) が `~/.office-addin-dev-certs` に作成し、`vite.config.ts` が読み込みます。`npm run certs` を先に実行していなくても、`npm run dev` の初回起動時に作成・登録されます
 - 証明書を削除するときは `npx office-addin-dev-certs uninstall` を実行します
+- dev サーバーは起動時に、textlint の Worker（`src/textlint/textlint-worker.js`）が無いか `.textlintrc.json`・`package-lock.json`・`prh/` より古ければ、`npm run build:worker` を実行して作り直します（数秒かかります）。起動中にルールを変えたときは、dev サーバーを起動し直すか `npm run build:worker` を実行してください
 - ブラウザで直接タスクペインを開くと、Office の外なので「未対応のホスト」と表示されます。動作確認は Excel に sideload して行います
 
 ## lint・テスト・CI

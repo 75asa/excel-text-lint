@@ -8,6 +8,7 @@
 | `locations.ts` | ホストごとの location 型（Excel は実装済み、ほかは案） |
 | `violation.ts` | textlint の結果を `Violation` にする純関数、表示用の範囲の計算、修正案の適用 |
 | `engine.ts` | textlint の Worker を包むクライアント `LintEngine`（#8） |
+| `worker-url.ts` | Worker（ローダー）の URL を組み立てる `textlintWorkerUrl()`。build ではファイル名にハッシュが付く（#45） |
 
 ## ドキュメント抽象（#9）
 
@@ -52,10 +53,14 @@
 
 ### Worker のビルド
 
-`npm run build:worker` で、`@textlint/script-compiler` がルート直下の `.textlintrc.json` と node_modules のルールから `public/textlint/textlint-worker.js` を生成する（git には入れない）。`npm run build` はこれを実行してから Vite で build するので、`dist/textlint/` に入る。dev サーバーを使う前にも 1 回実行しておくこと。
+`npm run build:worker` で、`@textlint/script-compiler` がルート直下の `.textlintrc.json` と node_modules のルールから `src/textlint/textlint-worker.js` を生成する（git には入れない）。
+
+- `npm run build` はこれを実行してから Vite で build する。Vite プラグイン（`scripts/textlint-worker.ts`）が、ローダーと Worker のファイル名にコンテンツハッシュを付けて `dist/textlint/loader-<hash>.js`・`dist/textlint/textlint-worker-<hash>.js` に出力する（#45。理由は `docs/hosting.md` の「Worker のキャッシュ対策」）
+- dev サーバーは起動時に、Worker が無いか `.textlintrc.json`・`package-lock.json`・`prh/` より古ければ `npm run build:worker` を実行する。ハッシュは付けず `/textlint/loader.js`・`/textlint/textlint-worker.js` で（Vite の変換を通さずに）配信する
+- タスクペインは `textlintWorkerUrl()`（`worker-url.ts`）でローダーの URL を組み立てて `LintEngine` に渡す。パスは仮想モジュール `virtual:textlint-worker` から受け取る（テストでは `src/testing/textlint-worker-stub.ts` に差し替える）
 
 - `.textlintrc.json` は #10（`docs/rules.md`）で選んだ推奨のルールセット（preset-ja-technical-writing・preset-jtf-style・prh と `prh/business-ja.yml`。Excel で誤検出の多いルールは無効）。ルールを変えたら、そのパッケージを devDependencies に入れて `npm run build:worker` をやり直す。prh の辞書はビルド時に Worker に埋め込まれる（辞書の `imports:` は埋め込まれない）
-- Worker は `public/textlint/loader.js`（ローダー）経由で起動する。生成された Worker の中の kuromoji は、辞書の URL が jsdelivr にハードコードされていて外から変えられない。ローダーが `fetch` をラップして、辞書の URL だけを自前の配信先に書き換える
+- Worker は `src/textlint/loader.js`（ローダー）経由で起動する。生成された Worker の中の kuromoji は、辞書の URL が jsdelivr にハードコードされていて外から変えられない。ローダーが `fetch` をラップして、辞書の URL だけを自前の配信先に書き換える
 - 辞書の配信先は、Worker の URL のクエリ `dict` で起動時に渡す（`LintEngine` の `dictBaseUrl`）。省略すると jsdelivr から取得する。タスクペインでは次のようにしている
   - `VITE_TEXTLINT_DICT_BASE_URL` があればそれ
   - build した成果物では `<base>/dict/`（辞書は build 時に `dist/dict/` へコピーする。#7）

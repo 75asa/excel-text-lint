@@ -7,6 +7,10 @@
 // 配信先は Worker の URL のクエリ `dict` で渡す（例: loader.js?dict=https://example.com/dict）。
 // 省略したときは書き換えず、jsdelivr から取得する。
 // IndexedDB のキャッシュのキーは書き換える前の URL なので、配信先を変えてもキャッシュは使い回される。
+//
+// build では、このファイルと textlint-worker.js のファイル名にコンテンツハッシュを付けて dist/textlint/ に出力する。
+// そのとき、末尾の importScripts に渡している Worker の相対パス（文字列リテラル）もハッシュ付きの名前に書き換える
+// （scripts/textlint-worker.ts）。このリテラルと KUROMOJI_CDN は build で検査するので、形を変えないこと。
 
 const KUROMOJI_CDN = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 

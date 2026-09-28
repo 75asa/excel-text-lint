@@ -14,7 +14,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build:worker": "textlint-script-compiler --textlintrc .textlintrc.json --output-dir public/textlint --mode production --metadataName excel-text-lint --metadataNamespace https://github.com/75asa/excel-text-lint --metadataHomepage https://github.com/75asa/excel-text-lint --metadataVersion 0.0.0",
+    "build:worker": "textlint-script-compiler --textlintrc .textlintrc.json --output-dir src/textlint --mode production --metadataName excel-text-lint --metadataNamespace https://github.com/75asa/excel-text-lint --metadataHomepage https://github.com/75asa/excel-text-lint --metadataVersion 0.0.0",
     "build": "npm run build:worker && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
