@@ -157,7 +157,15 @@ class DemoAdapter implements HostAdapter<ExcelLocation> {
     return CELLS.map(([sheet, address], index) => ({
       id: `${sheet}!${address}`,
       text: this.#texts.get(`${sheet}!${address}`) ?? "",
-      location: { host: "excel", sheet, address, row: index, col: 0 },
+      // #17 で ExcelLocation に isFormula が加わる。デモでは B3 を数式のセルにしておく
+      location: {
+        host: "excel",
+        sheet,
+        address,
+        row: index,
+        col: 0,
+        ...{ isFormula: address === "B3" },
+      },
     }));
   }
 

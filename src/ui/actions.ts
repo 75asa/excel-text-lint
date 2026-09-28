@@ -12,6 +12,7 @@ import type {
   RevealPrecision,
   Violation,
 } from "../core/types";
+import { isFormulaLocation } from "./format";
 import type { ResultItem } from "./results";
 
 /** 違反ごとの、操作のあとの状態。 */
@@ -30,15 +31,23 @@ export interface ItemActions {
   fix: boolean;
 }
 
+/**
+ * @param location 違反のある TextUnit の location。数式のセルなら修正のボタンを出さない（自動修正の対象外）
+ */
 export function itemActions(
   capabilities: HostCapabilities,
   violation: Violation,
   state: ItemState | undefined,
+  location?: unknown,
 ): ItemActions {
   return {
     reveal: capabilities.reveal !== "none",
     revealLabel: capabilities.reveal === "container" ? "開く" : "移動",
-    fix: capabilities.applyFix !== "none" && violation.fix !== undefined && state === undefined,
+    fix:
+      capabilities.applyFix !== "none" &&
+      violation.fix !== undefined &&
+      state === undefined &&
+      !isFormulaLocation(location),
   };
 }
 
@@ -159,7 +168,8 @@ export function planFixes<L>(
 ): FixBatch<L>[] {
   const byUnit = new Map<string, ResultItem<L>[]>();
   for (const item of items) {
-    if (!item.violation.fix || states.has(item.key)) continue;
+    if (!item.violation.fix || states.has(item.key) || isFormulaLocation(item.unit.location))
+      continue;
     const list = byUnit.get(item.violation.unitId);
     if (list) list.push(item);
     else byUnit.set(item.violation.unitId, [item]);

@@ -1077,3 +1077,20 @@ mark.severity-info {
   gap: 8px;
   margin-top: 16px;
 }
+
+.scope-notice {
+  margin: 0;
+  color: var(--fg-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.badge.formula {
+  padding: 0 5px;
+  border: 1px solid var(--stroke-1);
+  background: var(--bg-3);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-style: italic;
+  font-weight: 400;
+}

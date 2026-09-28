@@ -3,6 +3,7 @@ import {
   containerOf,
   formatExcelAddress,
   formatLocation,
+  isFormulaLocation,
   quoteSheetName,
   splitRuleId,
 } from "./format";
@@ -75,5 +76,14 @@ describe("splitRuleId", () => {
       name: "ja-no-redundant-expression",
     });
     expect(splitRuleId("prh")).toEqual({ preset: "", name: "prh" });
+  });
+});
+
+describe("isFormulaLocation", () => {
+  it("isFormula が true のときだけ true", () => {
+    expect(isFormulaLocation({ host: "excel", isFormula: true })).toBe(true);
+    expect(isFormulaLocation({ host: "excel", isFormula: false })).toBe(false);
+    expect(isFormulaLocation({ host: "excel" })).toBe(false);
+    expect(isFormulaLocation(null)).toBe(false);
   });
 });

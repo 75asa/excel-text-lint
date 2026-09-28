@@ -147,6 +147,19 @@ export function splitRuleId(ruleId: string): { preset: string; name: string } {
   return { preset: ruleId.slice(0, slash), name: ruleId.slice(slash + 1) };
 }
 
+/**
+ * 数式のセル（など、値をそのまま書き換えられない TextUnit）か。
+ *
+ * `ExcelLocation.isFormula`（#17 で追加）を見る。持っていない location では false。
+ */
+export function isFormulaLocation(location: unknown): boolean {
+  return (
+    typeof location === "object" &&
+    location !== null &&
+    (location as { isFormula?: unknown }).isFormula === true
+  );
+}
+
 function asHostLocation(location: unknown): HostLocation | undefined {
   if (typeof location !== "object" || location === null || !("host" in location)) return undefined;
   const { host } = location as { host: unknown };

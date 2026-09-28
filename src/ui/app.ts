@@ -29,6 +29,7 @@ import { buildExcerpt, buildFixPreview, type Excerpt } from "./excerpt";
 import {
   type HostTerms,
   hostTerms,
+  isFormulaLocation,
   SEVERITIES,
   scopeLabel,
   severityLabel,
@@ -50,7 +51,14 @@ import {
   summarize,
   toggleSeverity,
 } from "./results";
-import { describePhase, type EngineState, type RunPhase } from "./status";
+import {
+  describePhase,
+  type EngineState,
+  estimateRemainingMs,
+  type ProgressSample,
+  type RunPhase,
+  scopeNotice,
+} from "./status";
 
 /** lint を実行するもの（`LintEngine` がこの形を満たす）。デモやテストでは差し替える。 */
 export interface LintClient {
@@ -124,6 +132,7 @@ class Taskpane<L> implements TaskpaneApp {
     cancel: HTMLButtonElement;
     statusText: HTMLElement;
     statusHint: HTMLElement;
+    notice: HTMLElement;
     progress: HTMLElement;
     progressBar: HTMLElement;
     message: HTMLElement;
@@ -197,6 +206,7 @@ class Taskpane<L> implements TaskpaneApp {
     const scope = h("div", { class: "segmented", role: "radiogroup", "aria-label": "範囲" });
     const statusText = h("p", { class: "status-text" });
     const statusHint = h("p", { class: "status-hint", hidden: true });
+    const notice = h("p", { class: "scope-notice", hidden: true });
     const progressBar = h("div", { class: "progress-bar" });
     const progress = h(
       "div",
@@ -297,6 +307,7 @@ class Taskpane<L> implements TaskpaneApp {
       { class: "run", "aria-label": "実行" },
       scope,
       h("div", { class: "run-actions" }, run, cancel),
+      notice,
       h(
         "div",
         { class: "status", role: "status", "aria-live": "polite" },
@@ -320,6 +331,7 @@ class Taskpane<L> implements TaskpaneApp {
       cancel,
       statusText,
       statusHint,
+      notice,
       progress,
       progressBar,
       message,
@@ -386,11 +398,23 @@ class Taskpane<L> implements TaskpaneApp {
         violations: 0,
         warm: this.#warm,
       });
+      // 残り時間は、辞書の読み込みが終わって最初の結果が出たところからの速さで見積もる
+      let start: ProgressSample | undefined;
       const violations = await this.#engine.lint(units, {
         signal,
         onProgress: ({ done, total, violations }) => {
           if (done > 0) this.#warm = true;
-          this.#setPhase({ kind: "linting", done, total, violations, warm: this.#warm });
+          const now = { done, at: performance.now() };
+          start ??= now;
+          const remainingMs = estimateRemainingMs(start, now, total);
+          this.#setPhase({
+            kind: "linting",
+            done,
+            total,
+            violations,
+            warm: this.#warm,
+            ...(remainingMs === null ? {} : { remainingMs }),
+          });
         },
       });
       this.#warm = true;
@@ -696,6 +720,9 @@ class Taskpane<L> implements TaskpaneApp {
     const { run, cancel, statusText, statusHint, progress, progressBar, root } = this.#el;
 
     run.textContent = `${scopeLabel(this.#scope)}をチェック`;
+    const notice = busy ? null : scopeNotice(this.#scope, this.#terms.unit);
+    this.#el.notice.hidden = notice === null;
+    this.#el.notice.textContent = notice ?? "";
     run.disabled = busy;
     cancel.hidden = !busy;
     for (const segment of this.#el.scope.querySelectorAll("button")) segment.disabled = busy;
@@ -993,7 +1020,7 @@ class Taskpane<L> implements TaskpaneApp {
   #renderRow(item: ResultItem<L>): HTMLLIElement {
     const { violation } = item;
     const state = this.#states.get(item.key);
-    const actions = itemActions(this.#adapter.capabilities, violation, state);
+    const actions = itemActions(this.#adapter.capabilities, violation, state, item.unit.location);
     const selected = item.key === this.#selected;
     const rule = splitRuleId(violation.ruleId);
 
@@ -1044,6 +1071,7 @@ class Taskpane<L> implements TaskpaneApp {
         { class: "row-head" },
         severityBadge(violation.severity),
         h("span", { class: "location" }, item.location),
+        isFormulaLocation(item.unit.location) ? formulaBadge() : null,
         this.#groupBy === "rule"
           ? null
           : h("span", { class: "rule", title: violation.ruleId }, rule.name),
@@ -1069,7 +1097,7 @@ class Taskpane<L> implements TaskpaneApp {
     const { violation, unit } = item;
     const caps = this.#adapter.capabilities;
     const state = this.#states.get(item.key);
-    const actions = itemActions(caps, violation, state);
+    const actions = itemActions(caps, violation, state, unit.location);
     const rule = splitRuleId(violation.ruleId);
     const [start, end] = violation.displayRange;
     const matchText = unit.text.slice(start, end);
@@ -1088,6 +1116,7 @@ class Taskpane<L> implements TaskpaneApp {
         { class: "detail-head" },
         severityBadge(violation.severity),
         h("h2", { class: "detail-location" }, item.location),
+        isFormulaLocation(unit.location) ? formulaBadge() : null,
         state ? stateBadge(state) : null,
       ),
       h("p", { class: "detail-message" }, violation.message),
@@ -1139,6 +1168,13 @@ class Taskpane<L> implements TaskpaneApp {
         ),
       ),
       note ? h("p", { class: "note muted" }, note) : null,
+      isFormulaLocation(unit.location) && violation.fix
+        ? h(
+            "p",
+            { class: "note muted" },
+            "数式の結果の文字列なので、自動修正はできません。数式か参照先を直してください。",
+          )
+        : null,
       caps.reveal === "none"
         ? h(
             "p",
@@ -1167,6 +1203,10 @@ function severityBadge(severity: Severity): HTMLElement {
     h("span", { class: "dot", "aria-hidden": "true" }),
     severityLabel(severity),
   );
+}
+
+function formulaBadge(): HTMLElement {
+  return h("span", { class: "badge formula", title: "数式のセル（自動修正の対象外）" }, "fx");
 }
 
 function stateBadge(state: ItemState): HTMLElement {

@@ -71,6 +71,17 @@ describe("itemActions", () => {
     expect(itemActions(excel, withFix.violation, "stale").fix).toBe(false);
   });
 
+  it("数式のセルには修正を出さず、すべて適用からも除く", () => {
+    const withFix = items.find((i) => i.violation.fix);
+    if (!withFix) throw new Error("fixture");
+    expect(itemActions(excel, withFix.violation, undefined, { isFormula: true }).fix).toBe(false);
+    const formulaItems = items.map((i) => ({
+      ...i,
+      unit: { ...i.unit, location: { isFormula: true } },
+    }));
+    expect(planFixes(formulaItems, new Map())).toEqual([]);
+  });
+
   it("reveal が container のホストでは「開く」", () => {
     expect(
       itemActions({ ...none, reveal: "container" }, items[0]!.violation, undefined),

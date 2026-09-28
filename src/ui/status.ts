@@ -16,6 +16,8 @@ export type RunPhase =
       violations: number;
       /** 最初の lint が終わって、辞書の読み込みが済んでいるか。 */
       warm: boolean;
+      /** 残り時間の見積もり（ミリ秒）。見積もれないときは省略。 */
+      remainingMs?: number;
     }
   | { kind: "done"; scope: Scope; units: number; violations: number }
   | { kind: "empty"; scope: Scope }
@@ -100,6 +102,9 @@ export function describePhase(phase: RunPhase, engine: EngineState, unitNoun: st
         };
       return {
         text: `チェックしています… ${phase.done} / ${phase.total} ${unitNoun}（違反 ${phase.violations} 件）`,
+        ...(phase.remainingMs !== undefined
+          ? { hint: `残り ${formatDuration(phase.remainingMs)}` }
+          : {}),
         tone: "busy",
         progress: { value: phase.done, max: phase.total },
         busy: true,
@@ -134,5 +139,55 @@ export function describePhase(phase: RunPhase, engine: EngineState, unitNoun: st
         progress: null,
         busy: false,
       };
+  }
+}
+
+/** 進捗の記録（何件目がいつ終わったか）。 */
+export interface ProgressSample {
+  done: number;
+  /** ミリ秒（`performance.now()` など）。 */
+  at: number;
+}
+
+/**
+ * これまでの速さから、残り時間（ミリ秒）を見積もる。
+ *
+ * `start` は辞書を読み込んだあとの最初の記録にする（辞書の読み込みの時間を速さに含めないため）。
+ * 件数か経過時間が少なすぎて当てにならないときは null。
+ */
+export function estimateRemainingMs(
+  start: ProgressSample,
+  now: ProgressSample,
+  total: number,
+): number | null {
+  const done = now.done - start.done;
+  const elapsed = now.at - start.at;
+  if (done < 5 || elapsed < 1000 || now.done >= total) return null;
+  return ((total - now.done) * elapsed) / done;
+}
+
+/** 残り時間を「約 20 秒」「約 3 分」のように丸める。 */
+export function formatDuration(ms: number): string {
+  const seconds = Math.max(1, Math.round(ms / 1000));
+  if (seconds < 60) return `約 ${seconds < 10 ? seconds : Math.round(seconds / 5) * 5} 秒`;
+  return `約 ${Math.round(seconds / 60)} 分`;
+}
+
+/**
+ * 実行の前に出す、範囲についての注意。なければ null。
+ *
+ * シート・ブック全体はセルが多くなりやすく、時間のほとんどは lint にかかる（1 万セルで約 7 秒、5 万セルで約 30 秒。#17）。
+ */
+export function scopeNotice(scope: Scope, unitNoun: string): string | null {
+  switch (scope) {
+    case "workbook":
+    case "presentation":
+    case "section":
+    case "document":
+      return `${scopeLabel(scope)}全体は${unitNoun}が多いと時間がかかります（目安: 1 万${unitNoun}で約 7 秒）。途中で中止できます。`;
+    case "sheet":
+      return `${unitNoun}が多いシートは時間がかかることがあります。途中で中止できます。`;
+    default:
+      return null;
   }
 }
