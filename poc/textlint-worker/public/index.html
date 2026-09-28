@@ -98,5 +98,6 @@ window.runBench = async ({ workerUrl, cells }) => {
   w2.terminate();
   return out;
 };
+window.makeWorker = makeWorker; // compare.mjs から使う
 window.benchReady = true;
 </script>

@@ -6,4 +6,5 @@ self.fetch = (input, init) => {
   const url = typeof input === "string" ? input : input.url;
   return originalFetch(url.startsWith(CDN) ? LOCAL + url.slice(CDN.length) : input, init);
 };
-importScripts("./textlint-worker.js");
+// ?worker=<path> で読み込む worker を切り替えられる（compare.mjs で使う）
+importScripts(new URL(self.location.href).searchParams.get("worker") ?? "./textlint-worker.js");

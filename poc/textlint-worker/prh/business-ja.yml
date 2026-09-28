@@ -1,0 +1,81 @@
+# 業務文書向けの表記ゆれ辞書（このリポジトリで作成。ライセンスはリポジトリに従う）
+# 公用文作成の考え方（文化審議会建議、2022）と一般的な社内文書の表記を参考に、
+# 誤検出が少ないものだけを入れる。補助動詞・形式名詞・副詞などをひらがなにそろえる。
+# ブラウザでは rulePaths をビルド時に ruleContents へインライン化して使う（@textlint/config-inliner）。
+# `imports:` はインライン化の対象外なので使わない。
+version: 1
+rules:
+  # 補助動詞
+  - expected: くださ
+    pattern: /(?<=[てで])下さ(?=[いる])/
+    specs:
+      - from: 再起動して下さい
+        to: 再起動してください
+      - from: 下さい
+        to: 下さい
+  - expected: いただ
+    pattern: /(?<=[てで])頂(?=[きくけい])/
+    specs:
+      - from: ご連絡させて頂きます
+        to: ご連絡させていただきます
+      - from: お菓子を頂きました
+        to: お菓子を頂きました
+  - expected: いた
+    pattern: /致(?=し[まてた]|す[。、]?$)/
+    specs:
+      - from: 対応致します
+        to: 対応いたします
+      - from: お願い致します
+        to: お願いいたします
+  - expected: お
+    pattern: /(?<=[てで])居(?=[りるま])/
+    specs:
+      - from: 確認して居ります
+        to: 確認しております
+  # 可能動詞
+  - expected: でき
+    pattern: /出来(?=[るずなたてま])/
+    specs:
+      - from: 出来る限り
+        to: できる限り
+      - from: 出来ません
+        to: できません
+  # 副詞・接続詞
+  - expected: よろしく
+    pattern: 宜しく
+  - expected: ただし
+    pattern: /但し(?=[、，,])/
+    specs:
+      - from: 但し、例外
+        to: ただし、例外
+  - expected: あらかじめ
+    pattern: 予め
+  # 形式名詞
+  - expected: こと
+    pattern: /(?<=[るたうくすつぬむぶい])事(?=[がをはにもとで]|$)/
+    specs:
+      - from: 検討を行う事とする
+        to: 検討を行うこととする
+      - from: 事業部
+        to: 事業部
+      - from: 確認する事項
+        to: 確認する事項
+  - expected: とき
+    pattern: /(?<=[るたい])時(?=[はにのも、])/
+    specs:
+      - from: エラーが発生した時は
+        to: エラーが発生したときは
+      - from: 13時に
+        to: 13時に
+  - expected: ところ
+    pattern: /(?<=[るた])所(?=[でだ])/
+    specs:
+      - from: 確認した所で
+        to: 確認したところで
+  # 誤りやすい語
+  - expected: 行う
+    pattern: 行なう
+  - expected: シミュレーション
+    pattern: シュミレーション
+  - expected: コミュニケーション
+    pattern: コミニュケーション
