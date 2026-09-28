@@ -85,4 +85,9 @@ export interface PlainTextLocation {
   paragraphIndex: number;
 }
 
-export type HostLocation = ExcelLocation | WordLocation | PowerPointLocation | OneNoteLocation | PlainTextLocation;
+export type HostLocation =
+  | ExcelLocation
+  | WordLocation
+  | PowerPointLocation
+  | OneNoteLocation
+  | PlainTextLocation;

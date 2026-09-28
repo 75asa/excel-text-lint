@@ -9,3 +9,6 @@ dist/
 .DS_Store
 *.log
 .vite/
+
+# textlint の Worker（npm run build:worker で生成する）
+public/textlint/textlint-worker.js

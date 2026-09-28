@@ -183,7 +183,10 @@ export interface HostAdapter<L = unknown> {
   reveal(unit: TextUnit<L>, range?: TextRange): Promise<RevealPrecision>;
 
   /** 違反箇所をホスト上で目立たせる。capabilities.highlight が false なら何もしない実装でよい。 */
-  highlight(violations: readonly Violation[], units: ReadonlyMap<string, TextUnit<L>>): Promise<void>;
+  highlight(
+    violations: readonly Violation[],
+    units: ReadonlyMap<string, TextUnit<L>>,
+  ): Promise<void>;
 
   /** highlight で付けた書式を元に戻す。 */
   clearHighlight(): Promise<void>;

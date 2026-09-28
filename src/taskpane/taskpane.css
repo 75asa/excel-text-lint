@@ -19,13 +19,23 @@ button {
   padding: 6px 12px;
 }
 
-#cells {
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+progress {
+  width: 100%;
+  margin-top: 8px;
+}
+
+#violations {
   padding-left: 0;
   list-style: none;
 }
 
-#cells li {
-  padding: 4px 0;
+#violations li {
+  padding: 6px 0;
   border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
 }
 
@@ -35,7 +45,25 @@ button {
   opacity: 0.7;
 }
 
-.text {
+.context {
+  display: block;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.context mark {
+  background: color-mix(in srgb, #e81123 25%, transparent);
+  color: inherit;
+  text-decoration: underline wavy #e81123;
+}
+
+.message {
+  display: block;
+  margin-top: 2px;
+}
+
+.rule {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.6;
 }

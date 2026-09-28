@@ -11,9 +11,13 @@
   <body>
     <main>
       <h1>excel-text-lint</h1>
-      <p id="status">Office の初期化を待っています…</p>
-      <button id="read-selection" type="button" disabled>選択範囲のテキストを読み取る</button>
-      <ol id="cells"></ol>
+      <p id="status" role="status">Office の初期化を待っています…</p>
+      <div class="actions">
+        <button id="lint-selection" type="button" disabled>選択範囲を lint</button>
+        <button id="cancel" type="button" hidden>中止</button>
+      </div>
+      <progress id="progress" hidden></progress>
+      <ol id="violations"></ol>
     </main>
     <script type="module" src="./taskpane.ts"></script>
   </body>
