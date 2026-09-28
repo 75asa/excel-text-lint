@@ -1,83 +1,50 @@
 import { LintEngine } from "../core/engine";
-import type { ExcelLocation } from "../core/locations";
-import type { TextUnit, Violation } from "../core/types";
 import { ExcelAdapter } from "../hosts/excel/adapter";
+import { mountTaskpane } from "../ui/app";
+import { applyTheme, themeFromOffice } from "../ui/theme";
 
-// 見た目は最低限。UI は #18 で作り込む。
+// Office.js の初期化と、ホストのアダプタ・lint エンジンの用意だけを行う。UI は src/ui/ にある（#18）。
 
-const status = document.getElementById("status") as HTMLParagraphElement;
-const lintButton = document.getElementById("lint-selection") as HTMLButtonElement;
-const cancelButton = document.getElementById("cancel") as HTMLButtonElement;
-const progress = document.getElementById("progress") as HTMLProgressElement;
-const list = document.getElementById("violations") as HTMLOListElement;
-
-const engine = new LintEngine({
-  workerUrl: new URL(`${import.meta.env.BASE_URL}textlint/loader.js`, location.href),
-  dictBaseUrl: dictBaseUrl(),
-});
-const adapter = new ExcelAdapter();
-let controller: AbortController | undefined;
+const root = document.getElementById("app") as HTMLElement;
 
 Office.onReady(({ host }) => {
+  followOfficeTheme();
   if (host !== Office.HostType.Excel) {
-    status.textContent = `未対応のホストです: ${host ?? "（Office の外で開かれています）"}`;
+    root.textContent = `未対応のホストです: ${host ?? "（Office の外で開かれています）"}`;
     return;
   }
-  status.textContent = "セルを選択してボタンを押してください。";
-  lintButton.disabled = false;
-  lintButton.addEventListener("click", () => void lintSelection());
-  cancelButton.addEventListener("click", () =>
-    controller?.abort(new DOMException("中止しました", "AbortError")),
-  );
-  // Worker の起動を先に済ませておく（失敗しても lint 時にもう一度試す）
-  engine.init().catch((error: unknown) => console.error(error));
+  mountTaskpane({
+    root,
+    adapter: new ExcelAdapter(),
+    engine: new LintEngine({
+      workerUrl: new URL(`${import.meta.env.BASE_URL}textlint/loader.js`, location.href),
+      dictBaseUrl: dictBaseUrl(),
+    }),
+    title: "excel-text-lint",
+  });
 });
 
-async function lintSelection(): Promise<void> {
-  controller = new AbortController();
-  const { signal } = controller;
-  lintButton.disabled = true;
-  cancelButton.hidden = false;
-  list.replaceChildren();
+/**
+ * Office のテーマ（背景色）に合わせてライト / ダークを切り替える。
+ *
+ * `Office.context.officeTheme` が取れない環境（Office on the web の一部など）では、
+ * CSS の prefers-color-scheme に任せる。
+ */
+function followOfficeTheme(): void {
+  const update = () => applyTheme(document.documentElement, themeFromOffice(officeTheme()));
+  update();
   try {
-    status.textContent = "選択範囲を読み取っています…";
-    const units = await adapter.collect("selection", { signal });
-    if (units.length === 0) {
-      status.textContent = "選択範囲に文字列のセルがありません。";
-      return;
-    }
+    Office.context.document?.addHandlerAsync?.(Office.EventType.OfficeThemeChanged, update);
+  } catch {
+    // テーマの変更イベントに対応していないホスト
+  }
+}
 
-    status.textContent = `${units.length} 件のセルを lint しています…（初回は辞書の読み込みに時間がかかります）`;
-    progress.max = units.length;
-    progress.value = 0;
-    progress.hidden = false;
-    const violations = await engine.lint(units, {
-      signal,
-      onProgress: ({ done }) => {
-        progress.value = done;
-      },
-    });
-
-    const byId = new Map(units.map((unit) => [unit.id, unit]));
-    list.replaceChildren(
-      ...violations.map((violation) => renderViolation(violation, byId.get(violation.unitId)!)),
-    );
-    status.textContent =
-      violations.length === 0
-        ? `${units.length} 件のセルに違反はありませんでした。`
-        : `${units.length} 件のセルで ${violations.length} 件の違反が見つかりました。`;
-  } catch (error) {
-    if (signal.aborted) {
-      status.textContent = "中止しました。";
-    } else {
-      console.error(error);
-      status.textContent = `lint に失敗しました: ${error instanceof Error ? error.message : String(error)}`;
-    }
-  } finally {
-    controller = undefined;
-    lintButton.disabled = false;
-    cancelButton.hidden = true;
-    progress.hidden = true;
+function officeTheme(): { bodyBackgroundColor?: string } | undefined {
+  try {
+    return Office.context.officeTheme;
+  } catch {
+    return undefined;
   }
 }
 
@@ -95,42 +62,4 @@ function dictBaseUrl(): URL | undefined {
   if (override) return new URL(override, location.href);
   if (import.meta.env.PROD) return new URL(`${import.meta.env.BASE_URL}dict/`, location.href);
   return undefined;
-}
-
-/** 違反の前後に付ける文脈の文字数。 */
-const CONTEXT_CHARS = 12;
-
-function renderViolation(violation: Violation, unit: TextUnit<ExcelLocation>): HTMLLIElement {
-  const [start, end] = violation.displayRange;
-  const text = unit.text;
-  const before = text.slice(Math.max(0, start - CONTEXT_CHARS), start);
-  const after = text.slice(end, end + CONTEXT_CHARS);
-
-  const item = document.createElement("li");
-  const address = element("span", "address", `${unit.location.sheet}!${unit.location.address}`);
-  const context = element("span", "context");
-  context.append(
-    `${start > CONTEXT_CHARS ? "…" : ""}${before}`,
-    element("mark", undefined, text.slice(start, end)),
-    `${after}${end + CONTEXT_CHARS < text.length ? "…" : ""}`,
-  );
-  const message = element("span", "message", violation.message);
-  const rule = element(
-    "span",
-    "rule",
-    `${violation.ruleId}${violation.fix ? `（修正案: 「${violation.fix.text}」）` : ""}`,
-  );
-  item.append(address, context, message, rule);
-  return item;
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
 }
