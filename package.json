@@ -21,6 +21,7 @@
     "format": "biome check --write .",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
+    "bench:collect": "BENCH=1 npm test -- --silent=false",
     "check": "npm run lint && npm run typecheck && npm run test",
     "validate": "office-addin-manifest validate manifest.xml",
     "validate:prod": "office-addin-manifest validate dist/manifest.prod.xml",
