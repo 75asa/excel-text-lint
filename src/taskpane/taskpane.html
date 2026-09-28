@@ -3,22 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>excel-text-lint</title>
     <!-- Office.js は CDN から読み込む必要がある（バンドル不可） -->
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-    <link rel="stylesheet" href="./taskpane.css" />
   </head>
   <body>
-    <main>
-      <h1>excel-text-lint</h1>
-      <p id="status" role="status">Office の初期化を待っています…</p>
-      <div class="actions">
-        <button id="lint-selection" type="button" disabled>選択範囲を lint</button>
-        <button id="cancel" type="button" hidden>中止</button>
-      </div>
-      <progress id="progress" hidden></progress>
-      <ol id="violations"></ol>
-    </main>
+    <div id="app">
+      <p style="padding: 12px">Office の初期化を待っています…</p>
+    </div>
     <script type="module" src="./taskpane.ts"></script>
   </body>
 </html>
