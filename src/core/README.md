@@ -46,7 +46,7 @@
 | PowerPoint（#22） | selection / slide / presentation | unit（シェイプ） | △ | range | ✅ |
 | OneNote（#24） | selection / page | container（ページを開く） | ❌ | none（将来は selection） | ✅ |
 
-今の Excel アダプタ（`src/hosts/excel/adapter.ts`）は collect("selection") だけを実装し、ほかは `none` / `unsupported` を返す。
+Excel アダプタの collect（selection / sheet / workbook）は `src/hosts/excel/collect.ts`。方針は `src/hosts/excel/README.md` を参照。
 
 ## lint エンジン（#8）
 

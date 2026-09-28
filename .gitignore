@@ -12,3 +12,4 @@ dist/
 
 # textlint の Worker（npm run build:worker で生成する）
 public/textlint/textlint-worker.js
+bench/lint-engine/.out/
