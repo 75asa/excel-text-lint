@@ -2,30 +2,35 @@ import type { ExcelLocation } from "../../core/locations";
 import type {
   ApplyFixResult,
   CollectOptions,
+  Fix,
   HostAdapter,
   HostCapabilities,
   RevealPrecision,
   Scope,
+  TextRange,
   TextUnit,
+  Violation,
 } from "../../core/types";
+import { applyFixToCell } from "./fix";
+import { clearHighlights, highlightCells } from "./highlight";
+import { revealCell } from "./reveal";
 import { columnName } from "./selection";
 
 /**
  * Excel のアダプタ。
  *
- * 今は collect("selection") だけを実装している。
- * - reveal（該当セルへの移動）: #15
- * - highlight / clearHighlight: #16
- * - applyFix: #19
- * - シート・ブック全体の collect: #13
+ * - collect: 今は "selection" だけ（シート・ブック全体は #13）
+ * - reveal（該当セルへの移動）: `reveal.ts`（#15）
+ * - highlight / clearHighlight: `highlight.ts`（#16）
+ * - applyFix: `fix.ts`（#19）
  */
 export class ExcelAdapter implements HostAdapter<ExcelLocation> {
   readonly host = "excel";
   readonly capabilities: HostCapabilities = {
     scopes: ["selection"],
-    reveal: "none",
-    highlight: false,
-    applyFix: "none",
+    reveal: "unit",
+    highlight: true,
+    applyFix: "unit",
     selectionTracking: false,
   };
 
@@ -39,16 +44,24 @@ export class ExcelAdapter implements HostAdapter<ExcelLocation> {
     return units;
   }
 
-  async reveal(): Promise<RevealPrecision> {
-    return "none";
+  /** セルの中の文字位置までは選択できないので、`range` は使わない（精度は最良でも `unit`）。 */
+  reveal(unit: TextUnit<ExcelLocation>, _range?: TextRange): Promise<RevealPrecision> {
+    return revealCell(unit);
   }
 
-  async highlight(): Promise<void> {}
+  async highlight(
+    violations: readonly Violation[],
+    units: ReadonlyMap<string, TextUnit<ExcelLocation>>,
+  ): Promise<void> {
+    await highlightCells(violations, units);
+  }
 
-  async clearHighlight(): Promise<void> {}
+  async clearHighlight(): Promise<void> {
+    await clearHighlights();
+  }
 
-  async applyFix(): Promise<ApplyFixResult> {
-    return { status: "unsupported", reason: "Excel の自動修正は未実装です（#19）" };
+  applyFix(unit: TextUnit<ExcelLocation>, fix: Fix): Promise<ApplyFixResult> {
+    return applyFixToCell(unit, fix);
   }
 }
 
