@@ -10,5 +10,5 @@ dist/
 *.log
 .vite/
 
-# textlint の Worker（npm run build:worker で生成する）
-public/textlint/textlint-worker.js
+# textlint の Worker（npm run build:worker で生成する。dev サーバーは無いか古ければ自動で生成する）
+src/textlint/textlint-worker.js

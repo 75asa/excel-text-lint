@@ -2,7 +2,9 @@
  * textlint の Worker を包むクライアント（#8）。
  *
  * Worker は `@textlint/script-compiler` が生成したもの（`npm run build:worker`）を、
- * 辞書の URL を書き換えるローダー（`public/textlint/loader.js`）経由で起動する。
+ * 辞書の URL を書き換えるローダー（`src/textlint/loader.js`）経由で起動する。
+ * build ではどちらもファイル名にコンテンツハッシュが付くので、ローダーの URL は `textlintWorkerUrl()`
+ * （`worker-url.ts`）で組み立てて `workerUrl` に渡す（#45）。
  *
  * Worker とのやり取り（script-compiler の仕様）:
  * - 送信: `{ id, command: "lint" | "fix", text, ext, ruleId? }`、`{ command: "merge-config", textlintrc }`
@@ -16,7 +18,10 @@ import type { TextUnit, Violation } from "./types";
 import { type TextlintMessageLike, toViolation } from "./violation";
 
 export interface LintEngineOptions {
-  /** ローダー（`public/textlint/loader.js`）の URL。相対 URL は `location.href` を基準に解決する。 */
+  /**
+   * ローダー（`src/textlint/loader.js`）の URL。相対 URL は `location.href` を基準に解決する。
+   * build ではファイル名にハッシュが付くので、`textlintWorkerUrl()` の戻り値を渡す。
+   */
   workerUrl: string | URL;
   /**
    * kuromoji の辞書を置いた場所（`base.dat.gz` などが並ぶディレクトリ）。

@@ -1,6 +1,7 @@
 import { LintEngine } from "../core/engine";
 import type { ExcelLocation } from "../core/locations";
 import type { TextUnit, Violation } from "../core/types";
+import { textlintWorkerUrl } from "../core/worker-url";
 import { ExcelAdapter } from "../hosts/excel/adapter";
 
 // 見た目は最低限。UI は #18 で作り込む。
@@ -12,7 +13,7 @@ const progress = document.getElementById("progress") as HTMLProgressElement;
 const list = document.getElementById("violations") as HTMLOListElement;
 
 const engine = new LintEngine({
-  workerUrl: new URL(`${import.meta.env.BASE_URL}textlint/loader.js`, location.href),
+  workerUrl: textlintWorkerUrl(),
   dictBaseUrl: dictBaseUrl(),
 });
 const adapter = new ExcelAdapter();

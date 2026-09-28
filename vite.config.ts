@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import { hostingAssets, prodBaseUrl } from "./scripts/hosting.ts";
+import { textlintWorker } from "./scripts/textlint-worker.ts";
 
 const projectRoot = import.meta.dirname;
 const root = resolve(projectRoot, "src");
@@ -10,7 +11,7 @@ export default defineConfig(async ({ command }) => ({
   // 本番（GitHub Pages）はリポジトリのサブパス（/excel-text-lint/）で配信される。docs/hosting.md を参照
   base: command === "build" ? prodBaseUrl().pathname : "/",
   publicDir: resolve(projectRoot, "public"),
-  plugins: [hostingAssets({ projectRoot })],
+  plugins: [textlintWorker({ projectRoot }), hostingAssets({ projectRoot })],
   build: {
     outDir: resolve(projectRoot, "dist"),
     emptyOutDir: true,
